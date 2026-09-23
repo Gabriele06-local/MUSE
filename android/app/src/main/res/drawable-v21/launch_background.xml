@@ -6,6 +6,13 @@
         <color android:color="#FF07080D" />
     </item>
 
+    <!-- MUSE mark, centered on the abyss -->
+    <item>
+        <bitmap
+            android:gravity="center"
+            android:src="@drawable/launch_image" />
+    </item>
+
     <!-- You can insert your own image assets here -->
     <!-- <item>
         <bitmap

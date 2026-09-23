@@ -102,15 +102,27 @@ class _TopBar extends StatelessWidget {
       children: [
         Semantics(
           header: true,
-          child: const Text(
-            'MUSE',
-            style: TextStyle(
-              fontFamilyFallback: MuseType.sansFallback,
-              fontSize: 15,
-              letterSpacing: 8,
-              fontWeight: FontWeight.w600,
-              color: MuseColors.paper,
-            ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Image.asset(
+                'assets/logo/mark.png',
+                width: 26,
+                height: 26,
+                semanticLabel: 'MUSE logo',
+              ),
+              const SizedBox(width: 10),
+              const Text(
+                'MUSE',
+                style: TextStyle(
+                  fontFamilyFallback: MuseType.sansFallback,
+                  fontSize: 15,
+                  letterSpacing: 8,
+                  fontWeight: FontWeight.w600,
+                  color: MuseColors.paper,
+                ),
+              ),
+            ],
           ),
         ),
         const Spacer(),

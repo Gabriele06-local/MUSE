@@ -21,3 +21,4 @@ flutter:
   assets:
     - assets/quotes.json
     - assets/quotes_it.json
+    - assets/logo/mark.png
