@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Modify this file to customize your launch splash screen -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:drawable="?android:colorBackground" />
+    <!-- MUSE abyss: dark cinematic launch (logo slots in here later) -->
+    <item>
+        <color android:color="#FF07080D" />
+    </item>
 
     <!-- You can insert your own image assets here -->
     <!-- <item>

@@ -13,6 +13,7 @@ import 'discovery_stage.dart';
 import 'dream_background.dart';
 import 'favorites_screen.dart';
 import 'muse_theme.dart';
+import 'search_screen.dart';
 
 /// The museum view: one quote fills the viewport.
 ///
@@ -149,6 +150,31 @@ class _TopBar extends StatelessWidget {
         ),
         const SizedBox(width: 8),
         ListenableBuilder(
+          listenable: lang,
+          builder: (context, _) {
+            final s = lang.strings;
+            return Semantics(
+              button: true,
+              label: s.searchLabel,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(24),
+                onTap: () => _openSearch(context),
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
+                  child: Icon(
+                    Icons.search_rounded,
+                    size: 18,
+                    color: MuseColors.muted,
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+        ListenableBuilder(
           listenable: Listenable.merge([favorites, lang]),
           builder: (context, _) {
             final s = lang.strings;
@@ -190,6 +216,27 @@ class _TopBar extends StatelessWidget {
           },
         ),
       ],
+    );
+  }
+
+  void _openSearch(BuildContext context) {
+    Navigator.of(context).push(
+      PageRouteBuilder<void>(
+        transitionDuration: const Duration(milliseconds: 380),
+        reverseTransitionDuration: const Duration(milliseconds: 280),
+        pageBuilder: (_, _, _) => SearchScreen(
+          deck: deck,
+          favorites: favorites,
+          lang: lang,
+        ),
+        transitionsBuilder: (_, anim, _, child) {
+          final curved = CurvedAnimation(
+            parent: anim,
+            curve: Curves.easeOutCubic,
+          );
+          return FadeTransition(opacity: curved, child: child);
+        },
+      ),
     );
   }
 
@@ -387,14 +434,51 @@ class _FilterPill extends StatelessWidget {
 
 /// Vertical discovery viewport. Delegates feel to [DiscoveryStage] so the
 /// data layer ([QuoteDeck]) never cares whether tap or swipe leads.
-class _QuoteViewport extends StatelessWidget {
+///
+/// On desktop/web, arrow keys (and Space/Enter) also wander: up/right for
+/// the next quote, down/left for the previous one.
+class _QuoteViewport extends StatefulWidget {
   const _QuoteViewport({required this.deck, required this.lang});
 
   final QuoteDeck deck;
   final LanguageController lang;
 
   @override
+  State<_QuoteViewport> createState() => _QuoteViewportState();
+}
+
+class _QuoteViewportState extends State<_QuoteViewport> {
+  final FocusNode _focus = FocusNode();
+
+  @override
+  void dispose() {
+    _focus.dispose();
+    super.dispose();
+  }
+
+  KeyEventResult _onKey(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    final key = event.logicalKey;
+    if (key == LogicalKeyboardKey.arrowUp ||
+        key == LogicalKeyboardKey.arrowRight ||
+        key == LogicalKeyboardKey.space ||
+        key == LogicalKeyboardKey.enter) {
+      widget.deck.next();
+      return KeyEventResult.handled;
+    }
+    if ((key == LogicalKeyboardKey.arrowDown ||
+            key == LogicalKeyboardKey.arrowLeft) &&
+        widget.deck.canGoBack) {
+      widget.deck.previous();
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final deck = widget.deck;
+    final lang = widget.lang;
     return ListenableBuilder(
       listenable: Listenable.merge([deck, lang]),
       builder: (context, _) {
@@ -421,15 +505,28 @@ class _QuoteViewport extends StatelessWidget {
           );
         }
         final text = quote.textFor(code);
-        return DiscoveryStage(
-          config: HomeScreen.discovery,
-          transitionKey: ValueKey('quote-${quote.id}-$code'),
-          canGoPrevious: deck.canGoBack,
-          onNext: deck.next,
-          onPrevious: deck.previous,
-          semanticLabel: s.quoteSemantic(quote.author, text),
-          semanticHint: s.swipeHintSemantic,
-          child: _QuoteComposition(quote: quote, lang: lang),
+        return Focus(
+          focusNode: _focus,
+          autofocus: true,
+          onKeyEvent: _onKey,
+          child: GestureDetector(
+            // Tapping anywhere grabs keyboard focus so arrows keep working
+            // after the user clicks around. Fires before the stage's onTap.
+            onTapDown: (_) {
+              if (!_focus.hasFocus) _focus.requestFocus();
+            },
+            behavior: HitTestBehavior.translucent,
+            child: DiscoveryStage(
+              config: HomeScreen.discovery,
+              transitionKey: ValueKey('quote-${quote.id}-$code'),
+              canGoPrevious: deck.canGoBack,
+              onNext: deck.next,
+              onPrevious: deck.previous,
+              semanticLabel: s.quoteSemantic(quote.author, text),
+              semanticHint: s.swipeHintSemantic,
+              child: _QuoteComposition(quote: quote, lang: lang),
+            ),
+          ),
         );
       },
     );
@@ -536,6 +633,27 @@ class _BottomBar extends StatelessWidget {
         final s = lang.strings;
         return Column(
           children: [
+            // Discreet journey counter: position inside the active room.
+            ListenableBuilder(
+              listenable: deck,
+              builder: (context, _) {
+                final n = deck.currentNumber;
+                final total = deck.poolSize;
+                if (n <= 0 || total <= 0) return const SizedBox.shrink();
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Text(
+                    'N° $n / $total',
+                    style: MuseType.meta.copyWith(
+                      fontSize: 10,
+                      letterSpacing: 2.2,
+                      color: MuseColors.faint,
+                    ),
+                    semanticsLabel: 'Quote $n of $total',
+                  ),
+                );
+              },
+            ),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -572,6 +690,20 @@ class _BottomBar extends StatelessWidget {
                   },
                 ),
                 const SizedBox(width: 14),
+                ListenableBuilder(
+                  listenable: Listenable.merge([deck, lang]),
+                  builder: (context, _) {
+                    final q = deck.current;
+                    return _CircleAction(
+                      semanticLabel: s.copyQuote,
+                      icon: Icons.copy_rounded,
+                      onTap: q == null
+                          ? null
+                          : () => _copyQuote(context, q),
+                    );
+                  },
+                ),
+                const SizedBox(width: 14),
                 _CircleAction(
                   semanticLabel: s.revealNext,
                   icon: Icons.keyboard_arrow_up_rounded,
@@ -598,6 +730,33 @@ class _BottomBar extends StatelessWidget {
         );
       },
     );
+  }
+
+  void _copyQuote(BuildContext context, Quote quote) {
+    final code = lang.locale.code;
+    final text = quote.textFor(code);
+    HapticFeedback.selectionClick();
+    Clipboard.setData(ClipboardData(text: '“$text” — ${quote.author}'));
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(
+            lang.strings.copied,
+            style: MuseType.meta.copyWith(
+              color: MuseColors.paper,
+              letterSpacing: 0.8,
+            ),
+          ),
+          backgroundColor: const Color(0xFF171A26),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(4),
+            side: const BorderSide(color: MuseColors.hairline),
+          ),
+          duration: const Duration(milliseconds: 1500),
+        ),
+      );
   }
 
   void _openDetails(BuildContext context, Quote quote) {

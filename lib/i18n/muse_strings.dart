@@ -69,6 +69,18 @@ class MuseStrings {
   String languageSemantic(String name) =>
       _tp('languageSemantic', {'name': name});
 
+  // -- share ------------------------------------------------------------------
+  String get copyQuote => _t('copyQuote');
+  String get copied => _t('copied');
+
+  // -- search -------------------------------------------------------------------
+  String get searchTitle => _t('searchTitle');
+  String get searchHint => _t('searchHint');
+  String get searchLabel => _t('searchLabel');
+  String get noAuthors => _t('noAuthors');
+  String quotesCount(int n) =>
+      n == 1 ? _t('quotesOne') : _tp('quotesMany', {'n': '$n'});
+
   // -- categories & rooms ---------------------------------------------------------
   String categoryLabel(QuoteCategory c) {
     switch (c) {
@@ -134,6 +146,14 @@ const Map<String, String> _en = {
   'emptyCollectionLine': 'The museum keeps\nwhat you love.',
   'languageLabel': 'Language',
   'languageSemantic': 'Switch language. Current: {name}',
+  'copyQuote': 'Copy this quote',
+  'copied': 'Copied to clipboard',
+  'searchTitle': 'Search',
+  'searchHint': 'Search authors…',
+  'searchLabel': 'Search authors',
+  'noAuthors': 'No authors found.',
+  'quotesOne': '1 quote',
+  'quotesMany': '{n} quotes',
   'catItalian': 'Italian Entrepreneurs',
   'catInternational': 'International Entrepreneurs',
   'catCinema': 'Cinema',
@@ -183,6 +203,14 @@ const Map<String, Map<String, String>> _it = {
     'emptyCollectionLine': 'Il museo custodisce\nciò che ami.',
     'languageLabel': 'Lingua',
     'languageSemantic': 'Cambia lingua. Attuale: {name}',
+    'copyQuote': 'Copia questa citazione',
+    'copied': 'Copiata negli appunti',
+    'searchTitle': 'Cerca',
+    'searchHint': 'Cerca autori…',
+    'searchLabel': 'Cerca autori',
+    'noAuthors': 'Nessun autore trovato.',
+    'quotesOne': '1 citazione',
+    'quotesMany': '{n} citazioni',
     'catItalian': 'Imprenditori italiani',
     'catInternational': 'Imprenditori internazionali',
     'catCinema': 'Cinema',

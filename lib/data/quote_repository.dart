@@ -42,6 +42,32 @@ class QuoteDeck extends ChangeNotifier {
 
   int get remainingInCycle => _queue.length;
 
+  /// 1-based position of the current quote inside the active pool
+  /// (0 when nothing is shown). Used for the discreet "n° / total" counter.
+  int get currentNumber {
+    if (!_loaded || _history.isEmpty || _historyPos < 0) return 0;
+    return _history[_historyPos] + 1;
+  }
+
+  int get poolSize => _pool.length;
+
+  /// Unique author names across the whole collection, sorted A–Z.
+  List<String> get authors {
+    final set = <String>{for (final q in _all) q.author};
+    final list = set.toList()..sort();
+    return list;
+  }
+
+  List<Quote> quotesByAuthor(String author) =>
+      _all.where((q) => q.author == author).toList(growable: false);
+
+  Quote? firstByAuthor(String author) {
+    for (final q in _all) {
+      if (q.author == author) return q;
+    }
+    return null;
+  }
+
   Future<void> load() async {
     try {
       final raw = await rootBundle.loadString('assets/quotes.json');
