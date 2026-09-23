@@ -37,15 +37,15 @@ lib/
     home_screen.dart     one quote per viewport, EN/IT toggle, room filters
     details_screen.dart  author bio + nearby rooms
     favorites_screen.dart saved collection
-assets/quotes.json     1010 entries (en base)
-assets/quotes_it.json  1010 Italian content overrides
+assets/quotes.json     2010 entries (en base)
+assets/quotes_it.json  2010 Italian content overrides
 tools/gen_batch*.py  dataset generation scripts (authors + EN/IT quotes)
 ```
 
 ## Dataset
 
-- 1010 quotes, each in English and Italian: ~310 Italian Entrepreneurs,
-  ~347 International Entrepreneurs, ~177 Cinema, ~176 Culture.
+- 2010 quotes, each in English and Italian: ~460 Italian Entrepreneurs,
+  ~687 International Entrepreneurs, ~517 Cinema, ~346 Culture.
 - The first 30 entries are hand-verified; the extended collection gathers
   widely-circulated sayings — `source` is marked `Attributed` wherever a
   primary source is uncertain.
