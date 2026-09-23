@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../data/favorites_store.dart';
 import '../data/quote_repository.dart';
+import '../i18n/language_controller.dart';
 import '../models/quote.dart';
 import 'details_screen.dart';
 import 'dream_background.dart';
@@ -13,153 +14,174 @@ class FavoritesScreen extends StatelessWidget {
     super.key,
     required this.deck,
     required this.favorites,
+    required this.lang,
   });
 
   final QuoteDeck deck;
   final FavoritesStore favorites;
+  final LanguageController lang;
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: DreamBackground(
-        child: SafeArea(
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 640),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 8),
-                    Row(
+    return ListenableBuilder(
+      listenable: lang,
+      builder: (context, _) {
+        final s = lang.strings;
+        return Scaffold(
+          body: DreamBackground(
+            child: SafeArea(
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 640),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Semantics(
-                          button: true,
-                          label: 'Go back',
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(24),
-                            onTap: () => Navigator.of(context).pop(),
-                            child: const Padding(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 12,
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.arrow_back_rounded,
-                                    size: 18,
-                                    color: MuseColors.muted,
-                                    semanticLabel: 'Back',
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Semantics(
+                              button: true,
+                              label: s.back,
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(24),
+                                onTap: () => Navigator.of(context).pop(),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 12,
                                   ),
-                                  SizedBox(width: 8),
-                                  Text('Rooms', style: MuseType.meta),
-                                ],
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(
+                                        Icons.arrow_back_rounded,
+                                        size: 18,
+                                        color: MuseColors.muted,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        s.rooms,
+                                        style: MuseType.meta,
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ),
+                            ),
+                            const Spacer(),
+                            Text(
+                              s.savedBadge,
+                              style: const TextStyle(
+                                fontFamilyFallback:
+                                    MuseType.sansFallback,
+                                fontSize: 11,
+                                letterSpacing: 4,
+                                color: MuseColors.faint,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                        Semantics(
+                          header: true,
+                          child: Text(
+                            s.collectionTitle,
+                            style: const TextStyle(
+                              fontFamily: 'Georgia',
+                              fontFamilyFallback:
+                                  MuseType.serifFallback,
+                              fontSize: 30,
+                              height: 1.2,
+                              color: MuseColors.paper,
                             ),
                           ),
                         ),
-                        const Spacer(),
-                        const Text(
-                          'SAVED',
-                          style: TextStyle(
-                            fontFamilyFallback: MuseType.sansFallback,
-                            fontSize: 11,
-                            letterSpacing: 4,
-                            color: MuseColors.faint,
+                        const SizedBox(height: 8),
+                        ListenableBuilder(
+                          listenable: favorites,
+                          builder: (context, _) {
+                            final n = favorites.count;
+                            return Text(
+                              n == 0
+                                  ? s.collectionEmptyHint
+                                  : s.savedCount(n),
+                              style: MuseType.smallBody,
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 20),
+                        Expanded(
+                          child: ListenableBuilder(
+                            listenable: Listenable.merge([
+                              deck,
+                              favorites,
+                            ]),
+                            builder: (context, _) {
+                              final saved = deck.all
+                                  .where(
+                                    (q) => favorites.isFavorite(q.id),
+                                  )
+                                  .toList(growable: false);
+                              if (saved.isEmpty) {
+                                return _EmptyCollection(lang: lang);
+                              }
+                              return ListView.separated(
+                                itemCount: saved.length,
+                                separatorBuilder: (_, _) =>
+                                    const Divider(
+                                      color: MuseColors.hairline,
+                                      height: 1,
+                                    ),
+                                itemBuilder: (context, i) {
+                                  final q = saved[i];
+                                  return _SavedRow(
+                                    quote: q,
+                                    deck: deck,
+                                    favorites: favorites,
+                                    lang: lang,
+                                  );
+                                },
+                              );
+                            },
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 20),
-                    Semantics(
-                      header: true,
-                      child: Text(
-                        'Your collection',
-                        style: TextStyle(
-                          fontFamily: 'Georgia',
-                          fontFamilyFallback: MuseType.serifFallback,
-                          fontSize: 30,
-                          height: 1.2,
-                          color: MuseColors.paper,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    ListenableBuilder(
-                      listenable: favorites,
-                      builder: (context, _) {
-                        final n = favorites.count;
-                        return Text(
-                          n == 0
-                              ? 'Nothing saved yet — tap the heart in any room.'
-                              : '$n ${n == 1 ? "memory" : "memories"} kept',
-                          style: MuseType.smallBody,
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 20),
-                    Expanded(
-                      child: ListenableBuilder(
-                        listenable: Listenable.merge([deck, favorites]),
-                        builder: (context, _) {
-                          final saved = deck.all
-                              .where((q) => favorites.isFavorite(q.id))
-                              .toList(growable: false);
-                          if (saved.isEmpty) {
-                            return const _EmptyCollection();
-                          }
-                          return ListView.separated(
-                            itemCount: saved.length,
-                            separatorBuilder: (_, _) =>
-                                const Divider(
-                                  color: MuseColors.hairline,
-                                  height: 1,
-                                ),
-                            itemBuilder: (context, i) {
-                              final q = saved[i];
-                              return _SavedRow(
-                                quote: q,
-                                deck: deck,
-                                favorites: favorites,
-                              );
-                            },
-                          );
-                        },
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
 
 class _EmptyCollection extends StatelessWidget {
-  const _EmptyCollection();
+  const _EmptyCollection({required this.lang});
+
+  final LanguageController lang;
 
   @override
   Widget build(BuildContext context) {
-    return const Column(
+    final s = lang.strings;
+    return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Icon(
           Icons.bookmark_border_rounded,
           size: 32,
           color: MuseColors.faint,
-          semanticLabel: 'Empty collection',
+          semanticLabel: s.emptyCollectionSemantic,
         ),
-        SizedBox(height: 16),
+        const SizedBox(height: 16),
         Text(
-          'The museum keeps\nwhat you love.',
+          s.emptyCollectionLine,
           textAlign: TextAlign.center,
-          style: TextStyle(
+          style: const TextStyle(
             fontFamily: 'Georgia',
             fontFamilyFallback: MuseType.serifFallback,
             fontSize: 20,
@@ -177,17 +199,21 @@ class _SavedRow extends StatelessWidget {
     required this.quote,
     required this.deck,
     required this.favorites,
+    required this.lang,
   });
 
   final Quote quote;
   final QuoteDeck deck;
   final FavoritesStore favorites;
+  final LanguageController lang;
 
   @override
   Widget build(BuildContext context) {
+    final s = lang.strings;
+    final code = lang.locale.code;
     return Semantics(
       button: true,
-      label: 'Open quote by ${quote.author}',
+      label: s.openQuoteBy(quote.author),
       child: InkWell(
         onTap: () {
           Navigator.of(context).push(
@@ -197,6 +223,7 @@ class _SavedRow extends StatelessWidget {
                 quote: quote,
                 deck: deck,
                 favorites: favorites,
+                lang: lang,
               ),
               transitionsBuilder: (_, anim, _, child) =>
                   FadeTransition(opacity: anim, child: child),
@@ -213,7 +240,7 @@ class _SavedRow extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '“${quote.text}”',
+                      '“${quote.textFor(code)}”',
                       maxLines: 3,
                       overflow: TextOverflow.ellipsis,
                       style: MuseType.body.copyWith(
@@ -223,7 +250,7 @@ class _SavedRow extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      '${quote.author} · ${quote.category.label}'
+                      '${quote.author} · ${s.categoryLabel(quote.category)}'
                           .toUpperCase(),
                       style: MuseType.meta.copyWith(
                         fontSize: 10,
@@ -236,7 +263,7 @@ class _SavedRow extends StatelessWidget {
               const SizedBox(width: 12),
               Semantics(
                 button: true,
-                label: 'Remove ${quote.author} from saved',
+                label: s.removeAuthor(quote.author),
                 child: InkWell(
                   customBorder: const CircleBorder(),
                   onTap: () => favorites.toggle(quote.id),
@@ -246,7 +273,6 @@ class _SavedRow extends StatelessWidget {
                       Icons.favorite,
                       size: 17,
                       color: MuseColors.gold,
-                      semanticLabel: 'Remove',
                     ),
                   ),
                 ),

@@ -1,4 +1,9 @@
 /// Immutable value object for a single museum entry.
+///
+/// English fields are the base content. Italian overrides are optional and
+/// merged from a separate asset (`assets/quotes_it.json`), keeping quote
+/// content separate from UI translations. Accessors fall back to English
+/// whenever an Italian value is missing.
 class Quote {
   const Quote({
     required this.id,
@@ -9,6 +14,10 @@ class Quote {
     required this.years,
     required this.bio,
     required this.source,
+    this.textIt,
+    this.roleIt,
+    this.bioIt,
+    this.sourceIt,
   });
 
   final String id;
@@ -19,6 +28,27 @@ class Quote {
   final String years;
   final String bio;
   final String source;
+
+  /// Optional Italian overrides. Null/empty means "use English".
+  final String? textIt;
+  final String? roleIt;
+  final String? bioIt;
+  final String? sourceIt;
+
+  /// Localized accessors. Pass `'it'` for Italian, anything else for English.
+  String textFor(String languageCode) =>
+      (languageCode == 'it' && (textIt?.isNotEmpty ?? false)) ? textIt! : text;
+
+  String roleFor(String languageCode) =>
+      (languageCode == 'it' && (roleIt?.isNotEmpty ?? false)) ? roleIt! : role;
+
+  String bioFor(String languageCode) =>
+      (languageCode == 'it' && (bioIt?.isNotEmpty ?? false)) ? bioIt! : bio;
+
+  String sourceFor(String languageCode) =>
+      (languageCode == 'it' && (sourceIt?.isNotEmpty ?? false))
+      ? sourceIt!
+      : source;
 
   factory Quote.fromJson(Map<String, dynamic> json) {
     return Quote(
@@ -32,39 +62,41 @@ class Quote {
       source: (json['source'] as String?) ?? '',
     );
   }
+
+  /// Returns a copy with Italian overrides applied.
+  Quote withItalian(Map<String, dynamic> it) {
+    String? nonEmpty(String? v) =>
+        (v != null && v.trim().isNotEmpty) ? v : null;
+    return Quote(
+      id: id,
+      text: text,
+      author: author,
+      category: category,
+      role: role,
+      years: years,
+      bio: bio,
+      source: source,
+      textIt: nonEmpty(it['text'] as String?),
+      roleIt: nonEmpty(it['role'] as String?),
+      bioIt: nonEmpty(it['bio'] as String?),
+      sourceIt: nonEmpty(it['source'] as String?),
+    );
+  }
 }
 
 enum QuoteCategory {
-  italianEntrepreneurs('italian_entrepreneurs', 'Italian Entrepreneurs'),
-  internationalEntrepreneurs(
-    'international_entrepreneurs',
-    'International Entrepreneurs',
-  ),
-  cinema('cinema', 'Cinema'),
-  culture('culture', 'Culture');
+  italianEntrepreneurs('italian_entrepreneurs'),
+  internationalEntrepreneurs('international_entrepreneurs'),
+  cinema('cinema'),
+  culture('culture');
 
-  const QuoteCategory(this.key, this.label);
+  const QuoteCategory(this.key);
   final String key;
-  final String label;
 
   static QuoteCategory fromKey(String key) {
     for (final c in QuoteCategory.values) {
       if (c.key == key) return c;
     }
     return QuoteCategory.culture;
-  }
-
-  /// A short room name used in the dreamy museum metaphor.
-  String get room {
-    switch (this) {
-      case QuoteCategory.italianEntrepreneurs:
-        return 'Room I · Italian Vision';
-      case QuoteCategory.internationalEntrepreneurs:
-        return 'Room II · World Builders';
-      case QuoteCategory.cinema:
-        return 'Room III · Cinema';
-      case QuoteCategory.culture:
-        return 'Room IV · Culture';
-    }
   }
 }

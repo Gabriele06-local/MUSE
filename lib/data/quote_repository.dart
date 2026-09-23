@@ -46,15 +46,32 @@ class QuoteDeck extends ChangeNotifier {
     try {
       final raw = await rootBundle.loadString('assets/quotes.json');
       final decoded = json.decode(raw) as List<dynamic>;
-      _all = decoded
+      var quotes = decoded
           .map((e) => Quote.fromJson(e as Map<String, dynamic>))
           .toList(growable: false);
+      // Merge optional Italian overrides (best-effort, English always works).
+      try {
+        final rawIt = await rootBundle.loadString('assets/quotes_it.json');
+        final decodedIt = json.decode(rawIt) as List<dynamic>;
+        final byId = <String, Map<String, dynamic>>{
+          for (final e in decodedIt) (e as Map<String, dynamic>)['id'] as String: e,
+        };
+        quotes = quotes
+            .map((q) {
+              final it = byId[q.id];
+              return it == null ? q : q.withItalian(it);
+            })
+            .toList(growable: false);
+      } catch (_) {
+        // Italian content is optional; ignore and keep English base.
+      }
+      _all = quotes;
       _applyFilter(null, notify: false);
       _loaded = true;
       _error = null;
     } catch (e) {
       _loaded = false;
-      _error = 'Could not open the museum rooms.';
+      _error = 'loadError';
     }
     notifyListeners();
   }
