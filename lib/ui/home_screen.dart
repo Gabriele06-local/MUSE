@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -243,38 +244,86 @@ class _LangChip extends StatelessWidget {
   }
 }
 
-class _FilterRow extends StatelessWidget {
+class _FilterRow extends StatefulWidget {
   const _FilterRow({required this.deck, required this.lang});
 
   final QuoteDeck deck;
   final LanguageController lang;
 
   @override
+  State<_FilterRow> createState() => _FilterRowState();
+}
+
+/// Allows mouse/trackpad drag (desktop & web include mouse here) so the
+/// filter row scrolls with click-drag, not only touch.
+class _DesktopDragBehavior extends MaterialScrollBehavior {
+  const _DesktopDragBehavior();
+
+  @override
+  Set<PointerDeviceKind> get dragDevices => const {
+    PointerDeviceKind.touch,
+    PointerDeviceKind.mouse,
+    PointerDeviceKind.trackpad,
+    PointerDeviceKind.stylus,
+    PointerDeviceKind.unknown,
+  };
+}
+
+class _FilterRowState extends State<_FilterRow> {
+  final ScrollController _scroll = ScrollController();
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  /// Mouse wheel scrolls vertically by default — translate it to horizontal
+  /// so desktop users can glide through rooms without click-drag.
+  void _onWheel(PointerSignalEvent e) {
+    if (e is! PointerScrollEvent || !_scroll.hasClients) return;
+    final dx = e.scrollDelta.dx != 0 ? e.scrollDelta.dx : e.scrollDelta.dy;
+    if (dx == 0) return;
+    final next = (_scroll.offset + dx).clamp(
+      _scroll.position.minScrollExtent,
+      _scroll.position.maxScrollExtent,
+    );
+    _scroll.jumpTo(next);
+  }
+
+  @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: Listenable.merge([deck, lang]),
+      listenable: Listenable.merge([widget.deck, widget.lang]),
       builder: (context, _) {
-        final s = lang.strings;
-        final current = deck.filter;
+        final s = widget.lang.strings;
+        final current = widget.deck.filter;
         final items = <QuoteCategory?>[null, ...QuoteCategory.values];
         String labelFor(QuoteCategory? c) =>
             c == null ? s.showAll : s.categoryLabel(c);
         return Semantics(
           label: s.filterRooms,
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                for (var i = 0; i < items.length; i++) ...[
-                  _FilterPill(
-                    label: labelFor(items[i]),
-                    semanticLabel: s.showLabel(labelFor(items[i])),
-                    selected: current == items[i],
-                    onTap: () => deck.setFilter(items[i]),
-                  ),
-                  if (i != items.length - 1) const SizedBox(width: 8),
-                ],
-              ],
+          child: ScrollConfiguration(
+            behavior: const _DesktopDragBehavior(),
+            child: Listener(
+              onPointerSignal: _onWheel,
+              child: SingleChildScrollView(
+                controller: _scroll,
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    for (var i = 0; i < items.length; i++) ...[
+                      _FilterPill(
+                        label: labelFor(items[i]),
+                        semanticLabel: s.showLabel(labelFor(items[i])),
+                        selected: current == items[i],
+                        onTap: () => widget.deck.setFilter(items[i]),
+                      ),
+                      if (i != items.length - 1) const SizedBox(width: 8),
+                    ],
+                  ],
+                ),
+              ),
             ),
           ),
         );
